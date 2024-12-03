@@ -41,8 +41,20 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             password: hashedPassword,
         });
         // Generate JWT token
-        const token = jsonwebtoken_1.default.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.status(201).json({ message: 'User registered', token });
+        const token = jsonwebtoken_1.default.sign({
+            id: newUser._id,
+            isAdmin: newUser.isAdmin,
+            name: name,
+            email: email
+        }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true, // Cannot be accessed via JavaScript
+            secure: process.env.NODE_ENV === 'production', // Set to true in production
+            // sameSite: 'strict', // Protect against CSRF
+            maxAge: 24 * 60 * 60 * 1000, // 1 day
+        });
+        res.status(201).json({ message: 'User registered' });
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
@@ -58,7 +70,7 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(400)
                 .json({ message: "We didn't find any user with that email" });
         }
-        const isMatch = yield bcryptjs_1.default.compare(password, user.password);
+        const isMatch = bcryptjs_1.default.compareSync(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid email or password' });
         }

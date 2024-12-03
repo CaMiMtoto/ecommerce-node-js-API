@@ -17,6 +17,7 @@ connectDB().then(r => console.log('Database connected successfully'));
 const app = express();
 
 // Middleware
+app.use(cors())
 app.use(cookieParser());
 app.use(express.json());
 app.use(cors());

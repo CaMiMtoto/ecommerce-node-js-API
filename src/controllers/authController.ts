@@ -33,9 +33,23 @@ export const registerUser = async (req: Request, res: Response) => {
         });
 
         // Generate JWT token
-        const token = jwt.sign({id: newUser._id}, process.env.JWT_SECRET!, {expiresIn: '30d'});
-
-        res.status(201).json({message: 'User registered', token});
+        const token = jwt.sign(
+            {
+                id: newUser._id,
+                isAdmin: newUser.isAdmin,
+                name: name,
+                email: email
+            },
+            process.env.JWT_SECRET as string,
+            {expiresIn: '1d'});
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,     // Cannot be accessed via JavaScript
+            secure: process.env.NODE_ENV === 'production', // Set to true in production
+            // sameSite: 'strict', // Protect against CSRF
+            maxAge: 24 * 60 * 60 * 1000, // 1 day
+        });
+        res.status(201).json({message: 'User registered'});
     } catch (error: any) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: 'Internal Server Error'});
     }
@@ -51,7 +65,7 @@ export const loginUser = async (req: Request, res: Response) => {
                 .json({message: "We didn't find any user with that email"});
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch =  bcrypt.compareSync(password, user.password);
         if (!isMatch) {
             return res.status(400).json({message: 'Invalid email or password'});
         }
@@ -83,5 +97,5 @@ export const loginUser = async (req: Request, res: Response) => {
 
 export const logout = (req: Request, res: Response) => {
     res.clearCookie('token');
-    res.status(200).json({ message: 'Logout successful' });
+    res.status(200).json({message: 'Logout successful'});
 };
